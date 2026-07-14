@@ -16,4 +16,4 @@ Sergey Gusev
 Jade
 Brady
 
-Good to be funded by taxpayers
+Good to be funded by taxpayers including us
