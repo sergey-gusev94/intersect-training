@@ -1,4 +1,11 @@
-"""Rotating ASCII-art DNA double helix animation for the terminal (standard library only)."""
+"""Rotating ASCII-art DNA double helix animation for the terminal (standard library only).
+
+The two sugar-phosphate backbones are rendered as supersampled raster curves: each
+strand is sampled at sub-row resolution along a continuous theta and every terminal
+cell the curve passes through is rasterized, so the backbones read as continuous,
+spiralling ribbons instead of scattered dots. Glyphs are chosen from the local
+direction of travel and depth occlusion is preserved through the shared depth buffer.
+"""
 
 import argparse
 import math
@@ -12,6 +19,8 @@ COMPLEMENT = {"A": "T", "T": "A", "G": "C", "C": "G"}
 BACKBONE_RAMP = ".:-=+*oO#%@"
 RUNG_RAMP = ".-=+"
 RUNG_SPACING = 3
+BACKBONE_SUBSTEPS = 6
+BACKBONE_EXTREME = 0.25
 
 STRAND_A_COLORS = (17, 18, 19, 20, 26, 32, 39, 45, 51, 87, 159, 195)
 STRAND_B_COLORS = (52, 88, 124, 160, 166, 202, 208, 214, 220, 226, 227, 229)
@@ -70,6 +79,49 @@ def base_color(base, depth, use_color):
     return weight + ";" + BASE_COLORS[base]
 
 
+def backbone_glyph(sin_theta, cos_theta, amplitude, twist):
+    if abs(sin_theta) < BACKBONE_EXTREME:
+        return ")" if cos_theta >= 0.0 else "("
+    if amplitude * abs(sin_theta) * twist < 1.0:
+        return "|"
+    return "\\" if sin_theta < 0.0 else "/"
+
+
+def draw_backbone(plot, top, helix_rows, center, amplitude, twist, angle,
+                  phase, palette, use_color, depth_bias):
+    span = max(0, helix_rows - 1)
+    total = span * BACKBONE_SUBSTEPS
+    prev_row = None
+    prev_col = None
+    prev_depth = 0.0
+    for step in range(total + 1):
+        t = step / BACKBONE_SUBSTEPS
+        theta = t * twist + angle + phase
+        sin_theta = math.sin(theta)
+        cos_theta = math.cos(theta)
+        depth = (sin_theta + 1.0) * 0.5
+        row_i = int(round(top + t))
+        col_i = int(round(center + amplitude * cos_theta))
+        glyph = backbone_glyph(sin_theta, cos_theta, amplitude, twist)
+        color = strand_color(palette, depth, use_color)
+        if prev_row is None:
+            plot(row_i, col_i, depth - depth_bias, glyph, color)
+        else:
+            segment_steps = max(abs(row_i - prev_row), abs(col_i - prev_col))
+            if segment_steps == 0:
+                plot(row_i, col_i, depth - depth_bias, glyph, color)
+            else:
+                for i in range(1, segment_steps + 1):
+                    frac = i / segment_steps
+                    seg_row = int(round(prev_row + (row_i - prev_row) * frac))
+                    seg_col = int(round(prev_col + (col_i - prev_col) * frac))
+                    seg_depth = prev_depth + (depth - prev_depth) * frac
+                    plot(seg_row, seg_col, seg_depth - depth_bias, glyph, color)
+        prev_row = row_i
+        prev_col = col_i
+        prev_depth = depth
+
+
 def stamp_text(chars, colors, row, cols, text, use_color, gradient, dim_color):
     if not 0 <= row < len(chars):
         return
@@ -102,6 +154,7 @@ def build_frame(cols, rows, angle, pitch, use_color, fps):
     cap = max(18, helix_rows)
     amplitude = max(0, min(fill, cap))
     twist = 2.0 * math.pi / max(2.0, pitch)
+    depth_bias = min(0.9, twist * 0.25 + 0.1)
 
     def plot(row, col, depth, glyph, color):
         if glyph != " " and 0 <= row < rows and 0 <= col < cols and depth > depths[row][col]:
@@ -109,16 +162,20 @@ def build_frame(cols, rows, angle, pitch, use_color, fps):
             chars[row][col] = glyph
             colors[row][col] = color
 
-    for local_row in range(helix_rows):
-        row = top + local_row
-        theta0 = local_row * twist + angle
-        theta1 = theta0 + math.pi
-        depth0 = (math.sin(theta0) + 1.0) * 0.5
-        depth1 = (math.sin(theta1) + 1.0) * 0.5
-        col0 = int(round(center + amplitude * math.cos(theta0)))
-        col1 = int(round(center + amplitude * math.cos(theta1)))
+    draw_backbone(plot, top, helix_rows, center, amplitude, twist, angle,
+                  0.0, STRAND_A_COLORS, use_color, depth_bias)
+    draw_backbone(plot, top, helix_rows, center, amplitude, twist, angle,
+                  math.pi, STRAND_B_COLORS, use_color, depth_bias)
 
+    for local_row in range(helix_rows):
         if local_row % RUNG_SPACING == 0 and amplitude >= 1:
+            row = top + local_row
+            theta0 = local_row * twist + angle
+            theta1 = theta0 + math.pi
+            depth0 = (math.sin(theta0) + 1.0) * 0.5
+            depth1 = (math.sin(theta1) + 1.0) * 0.5
+            col0 = int(round(center + amplitude * math.cos(theta0)))
+            col1 = int(round(center + amplitude * math.cos(theta1)))
             base = SEQUENCE[local_row % len(SEQUENCE)]
             mate = COMPLEMENT[base]
             if col0 != col1:
@@ -134,11 +191,6 @@ def build_frame(cols, rows, angle, pitch, use_color, fps):
             glyph1 = mate if depth1 >= 0.5 else mate.lower()
             plot(row, col0, depth0, glyph0, base_color(base, depth0, use_color))
             plot(row, col1, depth1, glyph1, base_color(mate, depth1, use_color))
-        else:
-            plot(row, col0, depth0, ramp_pick(BACKBONE_RAMP, depth0),
-                 strand_color(STRAND_A_COLORS, depth0, use_color))
-            plot(row, col1, depth1, ramp_pick(BACKBONE_RAMP, depth1),
-                 strand_color(STRAND_B_COLORS, depth1, use_color))
 
     if show_chrome:
         stamp_text(chars, colors, 0, cols, TITLE, use_color, True, None)
