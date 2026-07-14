@@ -1,14 +1,5 @@
 ---
 name: Design Discussion
-about: Design Discussion
-title: ''
-labels: ''
-assignees: ''
-
----
-
----
-name: Design Discussion
 about: Start a design discussion for the project
 title: ''
 labels: ''
