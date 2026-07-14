@@ -3,8 +3,8 @@
 ## Materials needed
 
 1. Your favorite nut butter
-	almond
-	peanut
+    almond
+    peanut
 2. Bread
 	white
 	whole
