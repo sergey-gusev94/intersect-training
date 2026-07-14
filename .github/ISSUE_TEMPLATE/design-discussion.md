@@ -1,5 +1,5 @@
 ---
-name: Custom issue template
+name: Design Discussion
 about: Design Discussion
 title: ''
 labels: ''
