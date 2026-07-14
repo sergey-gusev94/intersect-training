@@ -15,4 +15,4 @@ The INTERSECT project is supported by NSF awards [2017424](https://www.nsf.gov/a
 Sergey Gusev
 Jade
 
-Good to be funded by taxpayers
+Good to be funded by taxpayers including us
