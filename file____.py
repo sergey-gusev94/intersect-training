@@ -5,3 +5,6 @@ def squared(x):
 x=4
 y=squared(x)
 print(y)
+
+
+print("Wow")
