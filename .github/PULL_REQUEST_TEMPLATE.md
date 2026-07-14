@@ -1,5 +1,5 @@
 ## Description
 
 ## Checklist
-[] tests pass
-[] docs updated
+- [] tests pass
+- [] docs updated
