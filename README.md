@@ -11,13 +11,8 @@ The dates so far have been:
 | Bootcamp 2026 | July 13-17, 2026 | Lewis Library, Princeton, NJ |
 
 The INTERSECT project is supported by NSF awards [2017424](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2017424)
-<<<<<<< HEAD
-and [2017259](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2017259)
 
 Sergey Gusev
 Jade
-=======
-and [2017259](https://www.nsf.gov/awardsearch/showAward?AWD_ID=2017259).
 
 Good to be funded by taxpayers
->>>>>>> 24eaf90 (new line)
